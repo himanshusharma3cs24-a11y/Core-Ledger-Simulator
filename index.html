@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Core Ledger Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f4f6fa;
+            color: #1e293b;
+        }
+
+        .navbar {
+            background: #172554;
+            color: white;
+            padding: 22px 35px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar h2 { font-size: 23px; }
+        .navbar span { color: #93c5fd; font-size: 14px; }
+
+        .container { padding: 35px; }
+        .heading { margin-bottom: 25px; }
+        .heading h1 { font-size: 28px; margin-bottom: 8px; }
+        .heading p { color: #64748b; }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+        }
+
+        .card h3 { font-size: 15px; color: #64748b; margin-bottom: 15px; }
+        .card h2 { font-size: 27px; }
+        .debit { border-left: 5px solid #2563eb; }
+        .credit { border-left: 5px solid #16a34a; }
+        .balance { border-left: 5px solid #9333ea; }
+
+        .transaction-section,
+        .account-section,
+        .add-transaction,
+        .trial-balance {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+        }
+
+        .transaction-section h2,
+        .account-section h2,
+        .add-transaction h2 { margin-bottom: 20px; font-size: 20px; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th { background: #f8fafc; color: #475569; font-size: 14px; }
+        td { font-size: 14px; }
+        .status { color: #16a34a; font-weight: bold; }
+
+        .account-form {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .account-form input,
+        .account-form select,
+        .transaction-form input,
+        .transaction-form select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            font-size: 14px;
+        }
+
+        .account-form button,
+        .transaction-form button {
+            padding: 12px;
+            background: #172554;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .account-form button:hover,
+        .transaction-form button:hover { background: #2563eb; }
+
+        .transaction-form {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+        }
+
+        .transaction-form button { grid-column: 1 / -1; padding: 13px; font-size: 15px; }
+
+        .trial-balance h2 { margin-bottom: 10px; }
+        .trial-description { color: #64748b; font-size: 14px; margin-bottom: 20px; }
+
+        .trial-table th,
+        .trial-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .trial-table th { background: #f1f5f9; color: #334155; }
+        .trial-table tfoot { font-weight: bold; background: #f8fafc; }
+
+        .reconciliation {
+            margin-top: 22px;
+            padding: 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .reconciliation h3 { margin-bottom: 12px; }
+        .reconciliation p { margin: 8px 0; }
+
+        .reconciliation-status {
+            margin-top: 15px;
+            padding: 12px;
+            background: #dcfce7;
+            color: #166534;
+            border-radius: 7px;
+            font-weight: bold;
+        }
+
+        .transaction-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .transaction-filters input,
+        .transaction-filters select {
+            flex: 1;
+            min-width: 180px;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .transaction-filters button {
+            padding: 12px 20px;
+            background: #1e293b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .transaction-filters button:hover { background: #334155; }
+
+        .action-buttons { display: flex; gap: 8px; }
+        .action-btn {
+            border: none;
+            border-radius: 5px;
+            padding: 8px 11px;
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .edit-btn { background: #2563eb; }
+        .edit-btn:hover { background: #1d4ed8; }
+        .delete-btn { background: #dc2626; }
+        .delete-btn:hover { background: #b91c1c; }
+
+        @media (max-width: 768px) {
+            .cards, .account-form, .transaction-form { grid-template-columns: 1fr; }
+            .container { padding: 20px; }
+            .navbar { padding: 18px; }
+            .transaction-section, .account-section, .trial-balance { overflow-x: auto; }
+            .trial-table { min-width: 550px; }
+            .transaction-section table { min-width: 850px; }
+        }
+
+    
+/* =================================
+   UI POLISH - CORE LEDGER
+================================= */
+
+/* Smooth page experience */
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    line-height: 1.6;
+}
+
+/* Navbar enhancement */
+.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* Dashboard cards */
+.card {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    border: 1px solid #e2e8f0;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.10);
+}
+
+/* Section headings */
+.transaction-section h2,
+.account-section h2,
+.add-transaction h2,
+.trial-balance h2 {
+    color: #172554;
+}
+
+/* Table improvements */
+table {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+thead th {
+    background: #eaf0f8;
+    color: #172554;
+    font-weight: 700;
+}
+
+tbody tr {
+    transition: background 0.2s ease;
+}
+
+tbody tr:hover {
+    background: #f1f5f9;
+}
+
+/* Form fields */
+input:focus,
+select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* Buttons */
+button {
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+button:hover {
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+/* Edit and Delete buttons */
+.action-btn {
+    min-width: 55px;
+    font-weight: 600;
+}
+
+/* Reconciliation section */
+.reconciliation {
+    border: 1px solid #e2e8f0;
+}
+
+.reconciliation-status {
+    text-align: center;
+    font-size: 14px;
+}
+
+/* Better mobile layout */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+
+    .navbar h2 {
+        font-size: 19px;
+    }
+
+    .navbar span {
+        font-size: 11px;
+    }
+
+    .card {
+        padding: 20px;
+    }
+
+    .transaction-filters {
+        flex-direction: column;
+    }
+
+    .transaction-filters input,
+    .transaction-filters select,
+    .transaction-filters button {
+        width: 100%;
+    }
+
+    .action-buttons {
+        flex-wrap: wrap;
+    }
+}
+
+    </style>
+</head>
+<body>
+    <header class="navbar">
+        <h2>Core Ledger</h2>
+        <span>Double Entry Accounting System</span>
+    </header>
+
+    <main class="container">
+        <section class="heading">
+            <h1>Dashboard</h1>
+            <p>Welcome to Core Ledger Simulator</p>
+        </section>
+
+        <section class="cards">
+            <div class="card debit">
+                <h3>Total Debit</h3>
+                <h2 id="totalDebitDashboard">₹ 0.00</h2>
+            </div>
+            <div class="card credit">
+                <h3>Total Credit</h3>
+                <h2 id="totalCreditDashboard">₹ 0.00</h2>
+            </div>
+            <div class="card balance">
+                <h3>Total Transactions</h3>
+                <h2 id="totalTransactionsDashboard">0</h2>
+            </div>
+        </section>
+
+        <section class="account-section">
+            <h2>Account Management</h2>
+            <div class="account-form">
+                <input type="text" id="accountName" placeholder="Enter Account Name" required>
+                <select id="accountType" required>
+                    <option value="">Select Account Type</option>
+                    <option value="Asset">Asset</option>
+                    <option value="Liability">Liability</option>
+                    <option value="Capital / Equity">Capital / Equity</option>
+                    <option value="Income">Income</option>
+                    <option value="Expense">Expense</option>
+                </select>
+                <input type="number" id="openingBalance" placeholder="Opening Balance" min="0" step="0.01" required>
+                <button type="button" onclick="addAccount()">+ Add Account</button>
+            </div>
+
+            <h3>Available Accounts</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Account Name</th>
+                        <th>Account Type</th>
+                        <th>Current Balance (₹)</th>
+                    </tr>
+                </thead>
+                <tbody id="accountTableBody"></tbody>
+            </table>
+        </section>
+
+        <section class="add-transaction">
+            <h2>Add New Transaction</h2>
+            <form class="transaction-form" id="transactionForm">
+                <input type="text" id="transactionName" placeholder="Transaction Name" required>
+                <input type="date" id="transactionDate" required>
+                <select id="debitAccount" required>
+                    <option value="">Select Debit Account</option>
+                </select>
+                <select id="creditAccount" required>
+                    <option value="">Select Credit Account</option>
+                </select>
+                <input type="number" id="transactionAmount" placeholder="Enter Amount (₹)" min="0.01" step="0.01" required>
+                <button type="submit">+ Add Transaction</button>
+            </form>
+        </section>
+
+        <section class="trial-balance">
+            <h2>Trial Balance</h2>
+            <p class="trial-description">Account-wise debit and credit balance summary</p>
+            <table class="trial-table">
+                <thead>
+                    <tr>
+                        <th>Account Name</th>
+                        <th>Debit (₹)</th>
+                        <th>Credit (₹)</th>
+                    </tr>
+                </thead>
+                <tbody id="trialBalanceBody"></tbody>
+                <tfoot>
+                    <tr>
+                        <td>Total</td>
+                        <td id="totalDebit">₹ 0.00</td>
+                        <td id="totalCredit">₹ 0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div class="reconciliation">
+                <h3>Reconciliation Summary</h3>
+                <p>Total Debit: <strong id="reconciliationDebit">₹ 0.00</strong></p>
+                <p>Total Credit: <strong id="reconciliationCredit">₹ 0.00</strong></p>
+                <p>Difference: <strong id="reconciliationDifference">₹ 0.00</strong></p>
+                <div class="reconciliation-status" id="reconciliationStatus">Waiting for transactions...</div>
+            </div>
+        </section>
+
+        <section class="transaction-section">
+            <h2>Recent Transactions</h2>
+            <p class="trial-description">Search and filter your transaction history</p>
+
+            <div class="transaction-filters">
+                <input type="text" id="searchTransaction" placeholder="Search transaction name...">
+                <input type="date" id="filterDate" title="Filter by date">
+                <select id="filterDebitAccount">
+                    <option value="">All Debit Accounts</option>
+                </select>
+                <select id="filterCreditAccount">
+                    <option value="">All Credit Accounts</option>
+                </select>
+                <button type="button" id="resetTransactionFilters">Reset Filters</button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Transaction</th>
+                        <th>Debit Account</th>
+                        <th>Credit Account</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionTableBody">
+                    <tr>
+                        <td colspan="7" style="text-align:center;">No transactions available yet.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
